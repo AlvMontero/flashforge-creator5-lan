@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creator 5</title>
+<style>
+  :root { --bg:#1e1f22; --card:#2a2b2f; --line:#3a3b40; --text:#e8e8ea; --dim:#9a9ba1; --accent:#00ae42; --warn:#e5a50a; --err:#e5484d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 -apple-system, system-ui, sans-serif; }
+  main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns:minmax(0,3fr) minmax(280px,2fr); }
+  @media (max-width:800px) { main { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  h2 { margin:0 0 10px; font-size:13px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:.05em; }
+  #cam { width:100%; aspect-ratio:4/3; object-fit:contain; background:#000; border-radius:6px; display:block; }
+  .state { font-size:20px; font-weight:600; }
+  .file { color:var(--dim); word-break:break-all; margin:2px 0 10px; }
+  .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; }
+  .bar > div { height:100%; background:var(--accent); width:0; transition:width .5s; }
+  .row { display:flex; justify-content:space-between; margin-top:6px; color:var(--dim); }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:6px 0; border-bottom:1px solid var(--line); }
+  td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.active td { color:var(--accent); font-weight:600; }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:3px; border:1px solid #0006; vertical-align:-1px; margin-right:6px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  button { flex:1; padding:10px; border:1px solid var(--line); border-radius:8px; background:#34353a; color:var(--text); font:inherit; cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.4; cursor:default; }
+  .msg { margin-top:8px; color:var(--dim); min-height:1.4em; }
+  .err { color:var(--err); }
+  .side { display:grid; gap:16px; align-content:start; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h2>Cámara</h2>
+    <img id="cam" alt="Cámara de la Creator 5">
+  </div>
+  <div class="side">
+    <div class="card">
+      <h2>Impresión</h2>
+      <div class="state" id="state">…</div>
+      <div class="file" id="file"></div>
+      <div class="bar"><div id="bar"></div></div>
+      <div class="row"><span id="pct"></span><span id="layer"></span></div>
+      <div class="row"><span id="dur"></span><span id="left"></span></div>
+      <div class="msg err" id="error"></div>
+    </div>
+    <div class="card">
+      <h2>Temperaturas</h2>
+      <table id="temps"></table>
+    </div>
+    <div class="card">
+      <h2>Control</h2>
+      <div class="btns">
+        <button id="pause">Pausar</button>
+        <button id="continue">Reanudar</button>
+        <button id="light">Luz</button>
+      </div>
+      <div class="msg" id="msg">Imprimir y cancelar: desde Claude o la pantalla.</div>
+    </div>
+  </div>
+</main>
+<script>
+const STATES = { ready:"Libre", printing:"Imprimiendo", pause:"En pausa", paused:"En pausa", busy:"Ocupada",
+                 heating:"Calentando", completed:"Terminada", error:"Error", cancel:"Cancelada" };
+const $ = id => document.getElementById(id);
+const hm = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s/3600), m = Math.round(s%3600/60); return h ? `${h} h ${m} min` : `${m} min`; };
+let last = null;
+
+async function refresh() {
+  try {
+    const r = await fetch("/api/status"); const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    last = d;
+    if (!$("cam").src) $("cam").src = d.camera;
+    $("state").textContent = STATES[d.status] || d.status;
+    $("file").textContent = d.file || "";
+    const p = d.progress || 0, active = ["printing","pause","paused"].includes(d.status);
+    $("bar").style.width = (active ? p*100 : 0) + "%";
+    $("pct").textContent = active ? (p*100).toFixed(1) + " %" : "";
+    $("layer").textContent = active && d.layers ? `Capa ${d.layer} / ${d.layers}` : "";
+    $("dur").textContent = active && d.duration ? "Lleva " + hm(d.duration) : "";
+    $("left").textContent = active && p > 0.02 ? "Quedan ≈ " + hm(d.duration*(1-p)/p) : "";
+    $("error").textContent = d.error ? "Error: " + d.error : "";
+    const rows = (d.nozzles || []).map((t, i) => {
+      const s = d.slots.find(x => x.id === i+1) || {}, tg = (d.nozzleTargets||[])[i] || 0;
+      return `<tr class="${tg ? "active" : ""}"><td><span class="sw" style="background:${s.color||"#555"}"></span>Cabezal ${i+1} · ${s.material||"—"}</td><td>${Math.round(t)} / ${Math.round(tg)} °C</td></tr>`;
+    });
+    rows.push(`<tr class="${d.bedTarget ? "active" : ""}"><td>Cama</td><td>${Math.round(d.bed)} / ${Math.round(d.bedTarget||0)} °C</td></tr>`);
+    $("temps").innerHTML = rows.join("");
+    $("pause").disabled = d.status !== "printing";
+    $("continue").disabled = !["pause","paused"].includes(d.status);
+  } catch (e) {
+    $("state").textContent = "Sin conexión"; $("error").textContent = String(e.message || e);
+  }
+}
+
+async function act(path, label) {
+  $("msg").textContent = label + "…";
+  try {
+    const r = await fetch(path, { method: "POST" }); const d = await r.json();
+    $("msg").textContent = r.ok ? label + ": hecho." : "Error: " + d.error;
+  } catch (e) { $("msg").textContent = "Error: " + e; }
+  refresh();
+}
+$("pause").onclick = () => confirm("¿Pausar la impresión?") && act("/api/pause", "Pausar");
+$("continue").onclick = () => act("/api/continue", "Reanudar");
+$("light").onclick = () => act(last && last.light === "open" ? "/api/light/off" : "/api/light/on", "Luz");
+$("cam").onerror = () => setTimeout(() => { if (last) $("cam").src = last.camera + "?t=" + Date.now(); }, 5000);
+refresh(); setInterval(refresh, 3000);
+</script>
+</body>
+</html>

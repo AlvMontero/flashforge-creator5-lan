@@ -1,0 +1,15 @@
+# Servicio de usuario de systemd para el panel de la Creator 5.
+# Copiar a ~/.config/systemd/user/ y activar con:
+#   systemctl --user daemon-reload && systemctl --user enable --now flashforge-panel
+# Da por hecho que el repositorio está en ~/flashforge-creator5-lan; si no, cambia la ruta.
+[Unit]
+Description=Panel web de la Flashforge Creator 5
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 %h/flashforge-creator5-lan/panel/app.py 8090
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
