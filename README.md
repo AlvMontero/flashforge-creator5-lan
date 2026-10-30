@@ -6,9 +6,11 @@ Creator 5** por su API de red local, sin la nube de Flashforge:
 - **`mcp/server.py`**: servidor [MCP](https://modelcontextprotocol.io) para que una IA (Claude Code,
   Claude Desktop u otro cliente MCP) consulte el estado, vea la cámara, suba archivos y lance,
   pause o cancele impresiones.
-- **`panel/`**: panel web con estado, progreso, temperaturas y material de los 4 cabezales, cama y
-  cámara en directo, con botones de pausar, reanudar y luz. Sirve para la pestaña **«Dispositivo»
-  de OrcaSlicer**, que con la Creator 5 sale en blanco, o para cualquier navegador de tu red.
+- **`panel/`**: panel web con estado, progreso, hora de fin, temperaturas (con gráfica), material
+  de los 4 cabezales, cámara en directo y archivos de la impresora; deja pausar, reanudar, cambiar
+  la velocidad, encender la luz e imprimir, y **avisa al móvil** cuando termina, se pausa o falla.
+  Sirve para la pestaña **«Dispositivo» de OrcaSlicer**, que con la Creator 5 sale en blanco, o para
+  cualquier navegador de tu red.
 
 *English summary: a dependency-free MCP server and a small web dashboard for the Flashforge
 Creator 5 over its local LAN API (port 8898) and MJPEG camera (port 8080). The dashboard fills
@@ -112,19 +114,45 @@ mostrará.
 
 ### Qué hace y qué no
 
-- Muestra estado, archivo, progreso, capa, tiempo transcurrido, tiempo restante aproximado
-  (calculado con el progreso), temperatura actual y objetivo de cada cabezal y de la cama, y el
-  material y color de cada cabezal.
+- Muestra estado, archivo con su miniatura, progreso, capa, tiempo transcurrido, tiempo restante y
+  **hora aproximada de fin**, temperatura actual y objetivo de cada cabezal y de la cama, material y
+  color de cada cabezal, ventiladores y puerta.
+- **Gráfica de temperaturas** de los últimos 30 minutos (se ven bien los cambios de cabezal).
+- **Contadores** de la impresora: horas impresas, metros de filamento, espacio libre y firmware.
+- **Archivos de la impresora** con miniatura y botón de imprimir. Solo se activa con la impresora
+  libre, y pide marcar «He comprobado que la placa está limpia y vacía» (y si nivelar antes).
+- **Velocidad** de la impresión en curso: 50, 75, 100, 125 o 150 %.
 - Cámara en directo. **La cámara de la Creator 5 corta las conexiones si se le abren varias a la
   vez** y luego tarda un rato en volver. Por eso el panel abre una sola conexión, guarda el último
   fotograma y lo reparte a todos los que miran (`/camera`). Si nadie mira, la suelta a los 15 s.
-- Botones: **pausar** (pide confirmación), **reanudar** y **luz**. **No** deja imprimir ni cancelar;
-  eso se hace desde la pantalla, OrcaSlicer o el MCP.
+- Botones: **pausar** (pide confirmación), **reanudar** y **luz**. **No** deja cancelar; eso se hace
+  desde la pantalla, OrcaSlicer o el MCP.
+- El panel lee la impresora una vez cada 5 s para todos los que lo miran, así que tener varias
+  pestañas abiertas no carga la impresora.
 - **No tiene contraseña.** Cualquiera en tu red local puede verlo y pausar. No lo expongas a
   internet; si lo necesitas fuera de casa, usa una VPN (WireGuard, Tailscale...).
 
-API del panel, por si quieres usarla desde otra cosa: `GET /api/status`, `GET /camera` (MJPEG),
-`POST /api/pause`, `/api/continue`, `/api/light/on`, `/api/light/off`.
+### Avisos al móvil
+
+El panel avisa cuando una impresión **termina**, **se pausa** (por ejemplo, por un atasco) o **da
+error**, aunque nadie tenga el panel abierto. Hace falta que el panel esté corriendo en una máquina
+siempre encendida. Añade a `~/.config/flashforge-mcp/config.json` una de estas dos:
+
+- **[ntfy](https://ntfy.sh)** (lo más fácil, sin cuenta): instala la app ntfy en el móvil, suscríbete
+  a un tema con un nombre difícil de adivinar (por ejemplo `creator5-` y letras al azar) y pon
+  `"notify": {"ntfy": "https://ntfy.sh/creator5-xxxxxxxx"}`. Ojo: en el servidor público, cualquiera
+  que conozca el nombre del tema puede leer los avisos (solo llevan el nombre del archivo y el estado).
+- **Telegram**: crea un bot con @BotFather y pon
+  `"notify": {"telegram": {"token": "...", "chat_id": "..."}}`.
+
+Reinicia el panel y pulsa «probar aviso» para comprobarlo.
+
+### API del panel
+
+Por si quieres usarla desde otra cosa: `GET /api/status`, `/api/history`, `/api/files`,
+`/api/thumb?file=...`, `/api/thumb/current`, `/camera` (MJPEG); `POST /api/pause`, `/api/continue`,
+`/api/light/on`, `/api/light/off`, `/api/speed` (`{"percent": 100}`), `/api/print`
+(`{"file": "...", "plateClear": true, "leveling": true}`), `/api/test-notify`.
 
 ## Servidor MCP
 
@@ -158,6 +186,7 @@ Es un servidor MCP por stdio. En la configuración del cliente:
 | `c5_upload_and_print` | Sube e imprime |
 | `c5_job_control` | Pausa, reanuda o cancela |
 | `c5_light` | Enciende o apaga la luz |
+| `c5_set_speed` | Cambia la velocidad de la impresión en curso (%) |
 
 **Arrancar y cancelar piden `confirm=true`**, y sin él devuelven un error. La idea es que la IA solo lo
 pase cuando una persona haya dicho que sí y haya comprobado que la placa está limpia y vacía: la

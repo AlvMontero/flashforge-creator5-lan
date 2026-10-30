@@ -36,8 +36,14 @@ Lo que quiero:
 1. Un panel web en el puerto 8090, solo con la biblioteca estándar de Python, con: estado,
    archivo, progreso, capa, tiempo transcurrido y restante aproximado, temperaturas actual/objetivo
    de los 4 cabezales y la cama, material y color de cada cabezal, y la cámara en directo.
-   Botones de pausar (con confirmación), reanudar y luz. Nada de imprimir ni cancelar desde el
+   Botones de pausar (con confirmación), reanudar, luz y velocidad (printerCtl_cmd con "speed";
+   los campos que no cambies van a -200). Gráfica de temperaturas de los últimos 30 min, hora de
+   fin (estimatedTime son los segundos que quedan), contadores (cumulativePrintTime en minutos,
+   cumulativeFilament en metros) y lista de archivos (/gcodeList, miniaturas con /gcodeThumb) con
+   botón de imprimir que exija marcar «la placa está limpia y vacía». Nada de cancelar desde el
    panel. Interfaz oscura y que se lea bien en la pestaña de OrcaSlicer y en el móvil.
+   Avisos al móvil (ntfy o Telegram) cuando una impresión termine, se pause o dé error, aunque
+   nadie tenga el panel abierto.
 2. (Opcional) Un servidor MCP por stdio con herramientas de estado, foto de la cámara, listar,
    subir, imprimir, pausar/reanudar/cancelar y luz. Imprimir y cancelar deben exigir un parámetro
    confirm=true y fallar sin él.

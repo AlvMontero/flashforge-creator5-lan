@@ -8,49 +8,90 @@
   :root { --bg:#1e1f22; --card:#2a2b2f; --line:#3a3b40; --text:#e8e8ea; --dim:#9a9ba1; --accent:#00ae42; --warn:#e5a50a; --err:#e5484d; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 -apple-system, system-ui, sans-serif; }
-  main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns:minmax(0,3fr) minmax(280px,2fr); }
-  @media (max-width:800px) { main { grid-template-columns:1fr; } }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
-  h2 { margin:0 0 10px; font-size:13px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:.05em; }
+  main { max-width:1280px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns:minmax(0,3fr) minmax(300px,2fr); }
+  @media (max-width:860px) { main { grid-template-columns:1fr; } }
+  .col { display:grid; gap:16px; align-content:start; min-width:0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; min-width:0; }
+  h2 { margin:0 0 10px; font-size:13px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:.05em; display:flex; justify-content:space-between; }
+  h2 small { text-transform:none; letter-spacing:0; font-weight:400; }
   #cam { width:100%; aspect-ratio:4/3; object-fit:contain; background:#000; border-radius:6px; display:block; }
+  .job { display:flex; gap:12px; align-items:flex-start; }
+  #thumb { width:72px; height:72px; object-fit:contain; background:#000; border-radius:6px; flex:none; display:none; }
   .state { font-size:20px; font-weight:600; }
   .file { color:var(--dim); word-break:break-all; margin:2px 0 10px; }
   .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; }
   .bar > div { height:100%; background:var(--accent); width:0; transition:width .5s; }
-  .row { display:flex; justify-content:space-between; margin-top:6px; color:var(--dim); }
+  .row { display:flex; justify-content:space-between; gap:8px; margin-top:6px; color:var(--dim); }
+  .row b { color:var(--text); font-weight:600; }
   table { width:100%; border-collapse:collapse; }
   td { padding:6px 0; border-bottom:1px solid var(--line); }
   td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
-  tr.active td { color:var(--accent); font-weight:600; }
+  tr.active td { color:var(--text); font-weight:600; }
+  tr td { color:var(--dim); }
   .sw { display:inline-block; width:12px; height:12px; border-radius:3px; border:1px solid #0006; vertical-align:-1px; margin-right:6px; }
   .btns { display:flex; gap:8px; flex-wrap:wrap; }
-  button { flex:1; padding:10px; border:1px solid var(--line); border-radius:8px; background:#34353a; color:var(--text); font:inherit; cursor:pointer; }
+  button { flex:1; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:#34353a; color:var(--text); font:inherit; cursor:pointer; white-space:nowrap; }
   button:hover:not(:disabled) { border-color:var(--accent); }
   button:disabled { opacity:.4; cursor:default; }
+  button.on { border-color:var(--accent); color:var(--accent); }
   .msg { margin-top:8px; color:var(--dim); min-height:1.4em; }
   .err { color:var(--err); }
-  .side { display:grid; gap:16px; align-content:start; }
+  .lbl { color:var(--dim); margin:12px 0 6px; }
+  svg { width:100%; height:170px; display:block; }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 12px; color:var(--dim); font-size:12px; margin-top:6px; }
+  .legend i { display:inline-block; width:10px; height:3px; border-radius:2px; vertical-align:middle; margin-right:4px; }
+  .files { max-height:320px; overflow:auto; margin:0 -4px; }
+  .f { display:flex; align-items:center; gap:10px; padding:6px 4px; border-bottom:1px solid var(--line); }
+  .f img { width:40px; height:40px; object-fit:contain; background:#000; border-radius:4px; flex:none; }
+  .f span { flex:1; word-break:break-all; font-size:13px; }
+  .f button { flex:none; padding:5px 10px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; }
+  .stats div { background:#232428; border-radius:8px; padding:8px 10px; }
+  .stats b { display:block; font-size:16px; }
+  .stats span { color:var(--dim); font-size:12px; }
+  dialog { background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:18px; max-width:420px; width:calc(100% - 32px); }
+  dialog::backdrop { background:#0009; }
+  dialog label { display:flex; gap:8px; align-items:flex-start; margin:10px 0; }
+  dialog input { margin-top:3px; }
 </style>
 </head>
 <body>
 <main>
-  <div class="card">
-    <h2>Cámara</h2>
-    <img id="cam" alt="Cámara de la Creator 5">
+  <div class="col">
+    <div class="card">
+      <h2>Cámara</h2>
+      <img id="cam" alt="Cámara de la Creator 5">
+    </div>
+    <div class="card">
+      <h2>Temperaturas <small>últimos 30 min</small></h2>
+      <svg id="chart" viewBox="0 0 600 170" preserveAspectRatio="none"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="card">
+      <h2>Archivos en la impresora <small><a href="#" id="reload" style="color:var(--dim)">recargar</a></small></h2>
+      <div class="files" id="files"><div class="msg">Cargando…</div></div>
+    </div>
   </div>
-  <div class="side">
+  <div class="col">
     <div class="card">
       <h2>Impresión</h2>
-      <div class="state" id="state">…</div>
-      <div class="file" id="file"></div>
+      <div class="job">
+        <img id="thumb" alt="">
+        <div style="flex:1;min-width:0">
+          <div class="state" id="state">…</div>
+          <div class="file" id="file"></div>
+        </div>
+      </div>
       <div class="bar"><div id="bar"></div></div>
       <div class="row"><span id="pct"></span><span id="layer"></span></div>
       <div class="row"><span id="dur"></span><span id="left"></span></div>
+      <div class="row"><span></span><span id="end"></span></div>
       <div class="msg err" id="error"></div>
     </div>
     <div class="card">
       <h2>Temperaturas</h2>
       <table id="temps"></table>
+      <div class="row" id="fans"></div>
     </div>
     <div class="card">
       <h2>Control</h2>
@@ -59,58 +100,140 @@
         <button id="continue">Reanudar</button>
         <button id="light">Luz</button>
       </div>
-      <div class="msg" id="msg">Imprimir y cancelar: desde Claude o la pantalla.</div>
+      <div class="lbl">Velocidad: <b id="speedNow">—</b></div>
+      <div class="btns" id="speeds"></div>
+      <div class="msg" id="msg">Cancelar: desde la pantalla de la impresora.</div>
+    </div>
+    <div class="card">
+      <h2>Impresora</h2>
+      <div class="stats" id="stats"></div>
+      <div class="row" style="margin-top:10px"><span id="notifyInfo"></span><a href="#" id="testNotify" style="color:var(--dim)">probar aviso</a></div>
     </div>
   </div>
 </main>
+
+<dialog id="printDlg">
+  <form method="dialog">
+    <div class="state" style="font-size:17px">Imprimir</div>
+    <div class="file" id="dlgFile"></div>
+    <label><input type="checkbox" id="dlgClear"> He comprobado que la placa está limpia y vacía.</label>
+    <label><input type="checkbox" id="dlgLevel" checked> Nivelar la cama antes de empezar.</label>
+    <div class="btns" style="margin-top:14px">
+      <button value="cancel">Volver</button>
+      <button value="ok" id="dlgOk" disabled>Imprimir</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 const STATES = { ready:"Libre", printing:"Imprimiendo", pause:"En pausa", paused:"En pausa", busy:"Ocupada",
                  heating:"Calentando", completed:"Terminada", error:"Error", cancel:"Cancelada" };
+const COLORS = ["#f2c94c", "#56ccf2", "#eb5757", "#bb6bd9", "#27ae60"];
 const $ = id => document.getElementById(id);
 const hm = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s/3600), m = Math.round(s%3600/60); return h ? `${h} h ${m} min` : `${m} min`; };
-let last = null;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let last = null, thumbFor = null;
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || r.statusText);
+  return d;
+}
 
 async function refresh() {
-  try {
-    const r = await fetch("/api/status"); const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    last = d;
-    if (!$("cam").src) $("cam").src = d.camera;
-    $("state").textContent = STATES[d.status] || d.status;
-    $("file").textContent = d.file || "";
-    const p = d.progress || 0, active = ["printing","pause","paused"].includes(d.status);
-    $("bar").style.width = (active ? p*100 : 0) + "%";
-    $("pct").textContent = active ? (p*100).toFixed(1) + " %" : "";
-    $("layer").textContent = active && d.layers ? `Capa ${d.layer} / ${d.layers}` : "";
-    $("dur").textContent = active && d.duration ? "Lleva " + hm(d.duration) : "";
-    $("left").textContent = active && p > 0.02 ? "Quedan ≈ " + hm(d.duration*(1-p)/p) : "";
-    $("error").textContent = d.error ? "Error: " + d.error : "";
-    const rows = (d.nozzles || []).map((t, i) => {
-      const s = d.slots.find(x => x.id === i+1) || {}, tg = (d.nozzleTargets||[])[i] || 0;
-      return `<tr class="${tg ? "active" : ""}"><td><span class="sw" style="background:${s.color||"#555"}"></span>Cabezal ${i+1} · ${s.material||"—"}</td><td>${Math.round(t)} / ${Math.round(tg)} °C</td></tr>`;
-    });
-    rows.push(`<tr class="${d.bedTarget ? "active" : ""}"><td>Cama</td><td>${Math.round(d.bed)} / ${Math.round(d.bedTarget||0)} °C</td></tr>`);
-    $("temps").innerHTML = rows.join("");
-    $("pause").disabled = d.status !== "printing";
-    $("continue").disabled = !["pause","paused"].includes(d.status);
-  } catch (e) {
-    $("state").textContent = "Sin conexión"; $("error").textContent = String(e.message || e);
-  }
+  let d;
+  try { d = await api("/api/status"); } catch (e) { $("state").textContent = "Sin conexión"; $("error").textContent = e.message; return; }
+  last = d;
+  if (!$("cam").src) $("cam").src = d.camera;
+  const active = ["printing","pause","paused"].includes(d.status), p = d.progress || 0;
+  $("state").textContent = STATES[d.status] || d.status;
+  $("file").textContent = d.file || "";
+  if (active && d.file !== thumbFor) { thumbFor = d.file; $("thumb").src = "/api/thumb/current?t=" + Date.now(); }
+  $("thumb").style.display = active ? "block" : "none";
+  $("bar").style.width = (active ? p*100 : 0) + "%";
+  $("pct").textContent = active ? (p*100).toFixed(1) + " %" : "";
+  $("layer").textContent = active && d.layers ? `Capa ${d.layer} / ${d.layers}` : "";
+  $("dur").textContent = active && d.duration ? "Lleva " + hm(d.duration) : "";
+  const left = d.remaining > 0 ? d.remaining : (p > 0.02 ? d.duration*(1-p)/p : 0);
+  $("left").textContent = active && left ? "Quedan ≈ " + hm(left) : "";
+  $("end").textContent = active && left ? "Acaba ≈ " + new Date(Date.now() + left*1000).toLocaleTimeString("es-ES", {hour:"2-digit", minute:"2-digit"}) : "";
+  $("error").textContent = d.error ? "Error: " + d.error : (d.stale || "");
+  const rows = (d.nozzles || []).map((t, i) => {
+    const s = d.slots.find(x => x.id === i+1) || {}, tg = (d.nozzleTargets||[])[i] || 0;
+    return `<tr class="${tg ? "active" : ""}"><td><span class="sw" style="background:${esc(s.color||"#555")}"></span>Cabezal ${i+1} · ${esc(s.material||"—")}</td><td>${Math.round(t)} / ${Math.round(tg)} °C</td></tr>`;
+  });
+  rows.push(`<tr class="${d.bedTarget ? "active" : ""}"><td>Cama</td><td>${Math.round(d.bed)} / ${Math.round(d.bedTarget||0)} °C</td></tr>`);
+  $("temps").innerHTML = rows.join("");
+  $("fans").innerHTML = `<span>Ventilador pieza <b>${d.coolingFan ?? "—"} %</b></span><span>Cámara <b>${d.chamberFan ?? "—"} %</b></span><span>Puerta <b>${d.door === "open" ? "abierta" : "cerrada"}</b></span>`;
+  $("pause").disabled = d.status !== "printing";
+  $("continue").disabled = !["pause","paused"].includes(d.status);
+  $("light").classList.toggle("on", d.light === "open");
+  $("speedNow").textContent = d.speed ? d.speed + " %" : "—";
+  document.querySelectorAll("#speeds button").forEach(b => { b.disabled = !active; b.classList.toggle("on", +b.dataset.v === d.speed); });
+  $("stats").innerHTML = [
+    [d.totalMinutes != null ? Math.round(d.totalMinutes/60) + " h" : "—", "impresas en total"],
+    [d.totalFilament != null ? d.totalFilament.toFixed(1) + " m" : "—", "de filamento"],
+    [d.disk != null ? d.disk.toFixed(1) + " GB" : "—", "libres"],
+    [d.firmware || "—", "firmware"],
+  ].map(([v, l]) => `<div><b>${esc(v)}</b><span>${l}</span></div>`).join("");
+  document.querySelectorAll(".f button").forEach(b => b.disabled = d.status !== "ready");
 }
 
-async function act(path, label) {
-  $("msg").textContent = label + "…";
+async function chart() {
+  let h; try { h = await api("/api/history"); } catch { return; }
+  const svg = $("chart"), W = 600, H = 170;
+  if (h.length < 2) { svg.innerHTML = `<text x="300" y="90" fill="#9a9ba1" text-anchor="middle" font-size="14">Recogiendo datos…</text>`; return; }
+  const n = h[0].length - 1, names = [...Array(n - 1)].map((_, i) => "Cabezal " + (i+1)).concat("Cama");
+  const series = names.map((_, i) => h.map(r => r[i+1])).map((v, i) => ({ v, i })).filter(s => Math.max(...s.v) > 45);
+  const all = series.flatMap(s => s.v), lo = Math.max(0, Math.floor(Math.min(...all, 20) / 25) * 25), hi = Math.ceil(Math.max(...all, 60) / 25) * 25;
+  const t0 = h[0][0], t1 = h[h.length-1][0], x = t => (t - t0) / Math.max(1, t1 - t0) * W, y = v => H - 14 - (v - lo) / (hi - lo) * (H - 24);
+  let g = "";
+  for (let v = lo; v <= hi; v += 50) g += `<line x1="0" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#3a3b40" vector-effect="non-scaling-stroke"/><text x="4" y="${y(v)-3}" fill="#9a9ba1" font-size="11">${v}°</text>`;
+  for (const s of series) g += `<polyline fill="none" stroke="${COLORS[s.i]}" stroke-width="2" vector-effect="non-scaling-stroke" points="${h.map((r, k) => x(r[0]).toFixed(1) + "," + y(s.v[k]).toFixed(1)).join(" ")}"/>`;
+  svg.innerHTML = g;
+  $("legend").innerHTML = series.map(s => `<span><i style="background:${COLORS[s.i]}"></i>${names[s.i]} ${Math.round(s.v[s.v.length-1])}°</span>`).join("");
+}
+
+async function files() {
   try {
-    const r = await fetch(path, { method: "POST" }); const d = await r.json();
-    $("msg").textContent = r.ok ? label + ": hecho." : "Error: " + d.error;
-  } catch (e) { $("msg").textContent = "Error: " + e; }
+    const list = await api("/api/files");
+    $("files").innerHTML = list.length ? list.map(f => `<div class="f"><img loading="lazy" src="/api/thumb?file=${encodeURIComponent(f)}" onerror="this.style.visibility='hidden'"><span>${esc(f)}</span><button data-f="${esc(f)}">Imprimir</button></div>`).join("") : `<div class="msg">No hay archivos.</div>`;
+    document.querySelectorAll(".f button").forEach(b => { b.disabled = !last || last.status !== "ready"; b.onclick = () => askPrint(b.dataset.f); });
+  } catch (e) { $("files").innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+}
+
+function askPrint(f) {
+  $("dlgFile").textContent = f; $("dlgClear").checked = false; $("dlgOk").disabled = true;
+  $("printDlg").returnValue = ""; $("printDlg").showModal();
+  $("printDlg").onclose = async () => {
+    if ($("printDlg").returnValue !== "ok" || !$("dlgClear").checked) return;
+    await act("/api/print", "Imprimir " + f, { file: f, plateClear: true, leveling: $("dlgLevel").checked });
+  };
+}
+$("dlgClear").onchange = () => $("dlgOk").disabled = !$("dlgClear").checked;
+
+async function act(path, label, body = {}) {
+  $("msg").textContent = label + "…";
+  try { await api(path, body); $("msg").textContent = label + ": hecho."; }
+  catch (e) { $("msg").textContent = "Error: " + e.message; }
   refresh();
 }
+
+[50, 75, 100, 125, 150].forEach(v => {
+  const b = document.createElement("button"); b.textContent = v + " %"; b.dataset.v = v;
+  b.onclick = () => act("/api/speed", "Velocidad " + v + " %", { percent: v });
+  $("speeds").appendChild(b);
+});
 $("pause").onclick = () => confirm("¿Pausar la impresión?") && act("/api/pause", "Pausar");
 $("continue").onclick = () => act("/api/continue", "Reanudar");
 $("light").onclick = () => act(last && last.light === "open" ? "/api/light/off" : "/api/light/on", "Luz");
+$("reload").onclick = e => { e.preventDefault(); files(); };
+$("testNotify").onclick = e => { e.preventDefault(); act("/api/test-notify", "Aviso de prueba"); };
+$("notifyInfo").textContent = "Avisos al móvil al terminar, pausar o fallar.";
 $("cam").onerror = () => setTimeout(() => { if (last) $("cam").src = last.camera + "?t=" + Date.now(); }, 5000);
-refresh(); setInterval(refresh, 3000);
+refresh(); chart(); files();
+setInterval(refresh, 3000); setInterval(chart, 15000);
 </script>
 </body>
 </html>

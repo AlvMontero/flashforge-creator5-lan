@@ -159,6 +159,21 @@ def t_light(on):
     return control("lightControl_cmd", {"status": "open" if on else "close"})
 
 
+def t_speed(percent):
+    # printerCtl_cmd cambia solo lo que no lleve -200 (docs de Parallel-7 para la Creator 5)
+    percent = int(percent)
+    if not 10 <= percent <= 300:
+        raise RuntimeError("La velocidad va de 10 a 300 %")
+    return control("printerCtl_cmd", {"zAxisCompensation": -200.0, "speed": percent,
+                                      "chamberFan": -200, "coolingFan": -200})
+
+
+def file_thumb(file_name):
+    """Miniatura (bytes) de un archivo de la impresora, o None si no tiene."""
+    data = post_json("gcodeThumb", {"fileName": file_name}).get("imageData")
+    return base64.b64decode(data) if data else None
+
+
 TOOLS = {
     "c5_status": (t_status, "Estado de la Creator 5: estado, progreso, capas, tiempo, temperaturas, error, firmware. raw=true devuelve la respuesta completa.",
                   {"raw": {"type": "boolean"}}, []),
@@ -174,6 +189,8 @@ TOOLS = {
     "c5_job_control": (t_job, "Pausa (pause), reanuda (continue) o cancela (cancel, necesita confirm=true) la impresión.",
                        {"action": {"type": "string", "enum": ["pause", "continue", "cancel"]}, "confirm": {"type": "boolean"}}, ["action"]),
     "c5_light": (t_light, "Enciende o apaga la luz de la Creator 5.", {"on": {"type": "boolean"}}, ["on"]),
+    "c5_set_speed": (t_speed, "Cambia la velocidad de la impresión en curso (porcentaje, 100 = la del laminado).",
+                     {"percent": {"type": "integer"}}, ["percent"]),
 }
 
 
